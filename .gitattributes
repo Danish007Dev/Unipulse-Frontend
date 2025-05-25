@@ -1,0 +1,19 @@
+# Treat all text files as UTF-8 LF-style line endings
+* text=auto eol=lf
+
+# Force bash/sh scripts to use LF (important for macOS)
+*.sh text eol=lf
+
+# Flutter files (usually ok, but explicitly safe)
+*.dart text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+
+# iOS-specific files
+*.plist text eol=lf
+*.xcodeproj text eol=lf
+*.pbxproj text eol=lf
+*.h text eol=lf
+*.cc text eol=lf
+*.swift text eol=lf

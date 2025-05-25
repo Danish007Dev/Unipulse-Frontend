@@ -1,0 +1,2 @@
+C:/Users/mdani/Development/unipulse_amu/mobile/flutter_app/android/app/.cxx/Debug/is3u1o3m/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/mdani/Development/unipulse_amu/mobile/flutter_app/android/app/.cxx/Debug/is3u1o3m/x86_64/CMakeFiles/rebuild_cache.dir

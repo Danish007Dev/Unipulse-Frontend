@@ -1,24 +1,29 @@
 import 'package:flutter/material.dart';
 
-import '../main.dart';
-
 class LogoutButton extends StatelessWidget {
-  const LogoutButton({super.key});
+  final VoidCallback onLogout;
 
-  void _logout(BuildContext context) async {
-    //await TokenManager.clearTokens(); // Clear saved tokens
-    // Only trigger logout from the global auth provider
-    globalAuthProvider.logout();
-    // Navigate to role selection screen and remove all previous routes
-    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-  }
+  const LogoutButton({
+    super.key,
+    required this.onLogout,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
+    return ElevatedButton.icon(
       icon: const Icon(Icons.logout),
-      onPressed: () => _logout(context),
-      tooltip: 'Logout',
+      label: const Text('Logout'),
+      onPressed: () {
+        // Schedule the logout to occur after the current build frame.
+        // This prevents the "setState() or markNeedsBuild() called during build" error.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          onLogout();
+        });
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.red,
+        foregroundColor: Colors.white,
+      ),
     );
   }
 }

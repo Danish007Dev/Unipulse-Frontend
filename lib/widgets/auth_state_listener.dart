@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_provider.dart';
 import '../FeedUpApp/auth/feedup_auth_provider.dart';
 import '../FeedUpApp/providers/bookmark_provider.dart';
+import '../askAI/providers/ai_bookmark_provider.dart';
 
 /// A widget that listens to authentication state changes and triggers
 /// corresponding data loading or clearing operations.
@@ -26,6 +27,7 @@ class _AuthStateListenerState extends State<AuthStateListener> {
     final uniPulseAuth = context.watch<AuthProvider>();
     final feedUpAuth = context.watch<FeedUpAuthProvider>();
     final bookmarkProvider = context.read<BookmarkProvider>();
+    final aiBookmarkProvider = context.read<AiBookmarkProvider>(); // Get the new provider
 
     final isAuthenticated = uniPulseAuth.isAuthenticated || feedUpAuth.isFeedUpUserAuthenticated;
 
@@ -42,10 +44,12 @@ class _AuthStateListenerState extends State<AuthStateListener> {
             // User just logged in
             appLogger.i('🔄 Auth state changed to LOGGED IN. Syncing data.');
             bookmarkProvider.syncBookmarksFromServer();
+            aiBookmarkProvider.syncBookmarksFromServer(); // Sync AI bookmarks
           } else {
             // User just logged out
             appLogger.i('🔄 Auth state changed to LOGGED OUT. Clearing data.');
             bookmarkProvider.clearAllBookmarks();
+            aiBookmarkProvider.clearAllBookmarks(); // Clear AI bookmarks
           }
         }
       });

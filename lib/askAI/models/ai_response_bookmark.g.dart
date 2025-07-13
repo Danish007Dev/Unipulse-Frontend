@@ -1,50 +1,44 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'article.dart';
+part of 'ai_response_bookmark.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class ArticleAdapter extends TypeAdapter<Article> {
+class AiResponseBookmarkAdapter extends TypeAdapter<AiResponseBookmark> {
   @override
-  final int typeId = 1;
+  final int typeId = 2;
 
   @override
-  Article read(BinaryReader reader) {
+  AiResponseBookmark read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return Article(
-      id: fields[0] as String,
-      title: fields[1] as String,
-      summary: fields[2] as String,
-      sourceName: fields[3] as String,
-      generatedPrompt: fields[4] as String?,
-      sourceUrl: fields[5] as String,
-      tags: (fields[6] as List).cast<String>(),
+    return AiResponseBookmark(
+      id: fields[0] as int,
+      question: fields[1] as String,
+      answer: fields[2] as String,
+      createdAt: fields[3] as DateTime,
+      originalArticle: fields[4] as Article,
     );
   }
 
   @override
-  void write(BinaryWriter writer, Article obj) {
+  void write(BinaryWriter writer, AiResponseBookmark obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.title)
+      ..write(obj.question)
       ..writeByte(2)
-      ..write(obj.summary)
+      ..write(obj.answer)
       ..writeByte(3)
-      ..write(obj.sourceName)
+      ..write(obj.createdAt)
       ..writeByte(4)
-      ..write(obj.generatedPrompt)
-      ..writeByte(5)
-      ..write(obj.sourceUrl)
-      ..writeByte(6)
-      ..write(obj.tags);
+      ..write(obj.originalArticle);
   }
 
   @override
@@ -53,7 +47,7 @@ class ArticleAdapter extends TypeAdapter<Article> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is ArticleAdapter &&
+      other is AiResponseBookmarkAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

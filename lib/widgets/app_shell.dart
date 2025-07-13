@@ -9,7 +9,7 @@ import '../FeedUpApp/screens/bookmarks_screen.dart';
 import 'login_prompt_widget.dart';
 import 'profile_screen.dart';
 import 'package:flutter_app/FeedUpApp/auth/feedup_auth_provider.dart';
-import '../askAI/ask_ai_screen.dart'; 
+import '../askAI/screens/ask_ai_landing_screen.dart'; 
 import '../screens/role_selection.dart';
 
 class AppShell extends StatefulWidget {
@@ -42,7 +42,7 @@ class _AppShellState extends State<AppShell> {
           ? const BookmarksScreen()
           : const LoginPromptWidget(message: 'Log in to view and manage your bookmarks.'),
       isAuthenticated
-          ? const AskAiScreen() // 🔵 Replace ProfileScreen with AskAiScreen
+          ? const AskAiLandingScreen()
           : const LoginPromptWidget(message: 'Log in to use the AI Assistant.'),
     ];
 
@@ -50,7 +50,7 @@ class _AppShellState extends State<AppShell> {
       'FeedUp',
       if (isUniPulseUser) 'Dashboard',
       'Bookmarks',
-      'Ask AI', // 🔵 Update title
+      'Ask AI', 
     ];
 
     // This check is important for when logout happens and tabs disappear

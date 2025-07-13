@@ -14,10 +14,10 @@ import 'FeedUpApp/providers/bookmark_provider.dart';
 import '../screens/role_selection.dart';
 import 'widgets/auth_state_listener.dart';
 import 'FeedUpApp/providers/feed_provider.dart';
-
-// ✅ Add these two imports
 import 'package:dio/dio.dart';
 import 'services/dio_client.dart';
+import 'askAI/models/ai_response_bookmark.dart'; 
+import 'askAI/providers/ai_bookmark_provider.dart'; 
 
 late final AuthProvider globalAuthProvider;
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -30,6 +30,8 @@ Future<void> main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(ArticleAdapter());
   await Hive.openBox<Article>('bookmarks');
+  Hive.registerAdapter(AiResponseBookmarkAdapter()); // Register the new adapter
+  await Hive.openBox<AiResponseBookmark>('ai_bookmarks'); // Open the new box
   // --- End Hive Initialization ---
 
   // Load environment variables
@@ -68,6 +70,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => StudentDashboardProvider()),
         ChangeNotifierProvider(create: (_) => FacultyDashboardProvider()),
         ChangeNotifierProvider(create: (_) => FeedProvider()),
+        ChangeNotifierProvider(create: (_) => AiBookmarkProvider()), 
       ],
       // ✅ Wrap the app with our new listener
       child: AuthStateListener(child: const MyApp()),

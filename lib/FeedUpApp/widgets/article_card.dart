@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../services/auth_provider.dart'; // Import the main AuthProvider
+import '../auth/feedup_auth_provider.dart';
+import '../../askAI/screens/ask_ai_screen.dart';
 import '../models/article.dart';
 import '../screens/webview_screen.dart';
 import '../providers/bookmark_provider.dart';
-import '../../services/auth_provider.dart';
-import '../auth/feedup_auth_provider.dart';
 
 class ArticleCard extends StatelessWidget {
   final Article article;
@@ -19,9 +20,11 @@ class ArticleCard extends StatelessWidget {
     final bookmarkProvider = context.watch<BookmarkProvider>();
     final bool isBookmarked = bookmarkProvider.isBookmarked(article.id);
 
-    // ✅ Get auth state to decide the bookmark button's action
+    // Get both auth providers
     final authProvider = context.watch<AuthProvider>();
     final feedUpAuthProvider = context.watch<FeedUpAuthProvider>();
+
+    // Use the same consolidated check as in AppShell
     final bool isAuthenticated = authProvider.isAuthenticated || feedUpAuthProvider.isFeedUpUserAuthenticated;
 
     return Card(
@@ -91,7 +94,32 @@ class ArticleCard extends StatelessWidget {
                   const Icon(Icons.open_in_new, size: 16, color: Colors.grey),
                 ],
               ),
-            )
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.smart_toy_outlined, color: Colors.deepPurpleAccent),
+                  tooltip: 'Ask AI about this article',
+                  onPressed: () {
+                    // Use the consolidated 'isAuthenticated' flag
+                    if (isAuthenticated) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AskAiScreen(article: article),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please log in to use the AI Assistant.')),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
           ],
         ),
       ),

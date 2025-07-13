@@ -1,8 +1,8 @@
 import 'package:hive/hive.dart';
 
-part 'article.g.dart'; // This file will be generated
+part 'article.g.dart';
 
-@HiveType(typeId: 0)
+@HiveType(typeId: 1)
 class Article extends HiveObject {
   @HiveField(0)
   final String id; // Unique ID from API, used as Hive key
@@ -44,6 +44,18 @@ class Article extends HiveObject {
       generatedPrompt: json['generated_prompt'],
       sourceUrl: json['source_url'] ?? '',
       tags: List<String>.from(json['tag_suggestions'] ?? []),
+    );
+  }
+
+  factory Article.fromMap(Map<String, dynamic> map) {
+    return Article(
+      id: map['id'].toString(), // Ensure id is a string
+      title: map['title'] ?? 'No Title',
+      summary: map['summary'] ?? '',
+      sourceName: map['source_name'] ?? 'Unknown Source',
+      generatedPrompt: map['generated_prompt'],
+      sourceUrl: map['source_url'] ?? '',
+      tags: List<String>.from(map['tag_suggestions'] ?? []),
     );
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; 
+import 'dart:io'; 
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:synchronized/synchronized.dart';
 import 'logger.dart';
@@ -93,9 +95,14 @@ class TokenManager {
       appLogger.i("🔄 Attempting to refresh tokens...");
 
       try {
-        // Use a new, clean Dio instance to avoid interceptor loops.
-        // IMPORTANT: Replace with your actual API base URL.
-        final dio = Dio(BaseOptions(baseUrl: 'http://10.0.2.2:8000'));
+        // --- FIX STARTS HERE ---
+        // Use the same dynamic base URL logic as DioClient.
+        final String baseUrl = dotenv.env['API_BASE_URL'] ??
+            (Platform.isAndroid ? 'http://10.0.2.2:8000' : 'http://localhost:8000');
+
+        // Use a new, clean Dio instance with the CORRECT base URL.
+        final dio = Dio(BaseOptions(baseUrl: baseUrl));
+        // --- FIX ENDS HERE ---
 
         final response = await dio.post(
           '/views/token/refresh/',

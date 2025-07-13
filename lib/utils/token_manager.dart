@@ -1,7 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart'; 
-import 'dart:io'; 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:io';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:synchronized/synchronized.dart';
 import 'logger.dart';
@@ -86,62 +86,64 @@ class TokenManager {
       }
 
       final refreshToken = await getRefreshToken();
-      if (refreshToken == null) {
-        appLogger.w('🚫 No refresh token available. Cannot refresh.');
+      final userType = await getUserRole(); // <-- Get the user's role
+
+      if (refreshToken == null || userType == null) {
+        appLogger.e("❌ Cannot refresh: Refresh token or user type is missing.");
+        await clearAllTokens();
         return null;
       }
 
-      _isRefreshing = true;
-      appLogger.i("🔄 Attempting to refresh tokens...");
+      appLogger.i("🔄 Attempting to refresh tokens for user type: $userType...");
 
       try {
-        // --- FIX STARTS HERE ---
-        // Use the same dynamic base URL logic as DioClient.
         final String baseUrl = dotenv.env['API_BASE_URL'] ??
             (Platform.isAndroid ? 'http://10.0.2.2:8000' : 'http://localhost:8000');
 
-        // Use a new, clean Dio instance with the CORRECT base URL.
-        final dio = Dio(BaseOptions(baseUrl: baseUrl));
-        // --- FIX ENDS HERE ---
+        // --- DYNAMIC REFRESH PATH LOGIC ---
+        final String refreshPath;
+        if (userType == 'student' || userType == 'faculty' || userType == 'admin') {
+          // This is a UniPulse user
+          refreshPath = '/views/token/refresh/';
+        } else {
+          // This includes 'feedup_user' and 'google_user'
+          refreshPath = '/feedup/auth/token/refresh/';
+        }
+        appLogger.i("--> Using refresh path: $refreshPath");
+        // --- END OF DYNAMIC LOGIC ---
 
+        final dio = Dio(BaseOptions(baseUrl: baseUrl));
         final response = await dio.post(
-          '/views/token/refresh/',
+          refreshPath, // Use the dynamically selected path
           data: {'refresh': refreshToken},
         );
 
-        final newAccessToken = response.data['access'] as String?;
-        final newRefreshToken = response.data['refresh'] as String?;
+        if (response.statusCode == 200) {
+          final newAccessToken = response.data['access'];
+          // Some refresh endpoints might return a new refresh token as well
+          final newRefreshToken = response.data['refresh'] ?? refreshToken;
 
-        if (newAccessToken == null) {
-          throw Exception("Refresh response did not contain a new access token.");
-        }
-
-        // Atomically save the new tokens.
-        await _lock.synchronized(() async {
-          await _storage.write(key: 'accessToken', value: newAccessToken);
-          if (newRefreshToken != null) {
-            await _storage.write(key: 'refreshToken', value: newRefreshToken);
-            appLogger.i("✅ New refresh token (rotated) was saved.");
-          }
-        });
-
-        appLogger.i('✅ Tokens refreshed successfully.');
-        return newAccessToken;
-      } on DioException catch (e) {
-        if (e.response?.statusCode == 401) {
-          appLogger.e('🚫 Refresh token is invalid or expired (401). User must log in again.');
+          await saveTokens(
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+            userType: userType, // Persist the user type
+            email: (await getCurrentUserEmail()) ?? '',
+          );
+          appLogger.i("✅ Tokens refreshed successfully.");
+          return newAccessToken;
         } else {
-          appLogger.e("🔥 Dio error during token refresh: ${e.message}");
+          throw DioException(
+            requestOptions: response.requestOptions,
+            response: response,
+            error: 'Token refresh failed with status ${response.statusCode}',
+          );
         }
-        // If refresh fails for any reason, the session is invalid.
-        await clearAllTokens();
-        return null;
-      } catch (e) {
-        appLogger.e("🔥 Unexpected error refreshing token: $e");
-        await clearAllTokens();
+      } on DioException catch (e) {
+        appLogger.e("⛔ Dio error during token refresh: ${e.message}");
+        await clearAllTokens(); // Critical failure, log the user out
         return null;
       } finally {
-        _isRefreshing = false; // Release the lock for other requests.
+        _isRefreshing = false;
       }
     });
   }

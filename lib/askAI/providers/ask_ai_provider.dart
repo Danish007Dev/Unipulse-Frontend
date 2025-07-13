@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import '../../FeedUpApp/models/article.dart';
+import '../models/chat_history_session.dart';
 import '../models/chat_model.dart';
-import '../services/ask_ai_service.dart'; // Import the new service
+import '../services/ask_ai_service.dart';
 
 class AskAiProvider with ChangeNotifier {
   final int articleId;
-  final AskAiService _aiService = AskAiService(); // Instantiate the service
+  final Article article; // Keep the full article object
+  String? sessionId; // Can be null for new chats
 
-  AskAiProvider({required this.articleId}) {
-    fetchInitialQuestions();
+  final AskAiService _aiService = AskAiService();
+  final Box<ChatHistorySession> _historyBox = Hive.box<ChatHistorySession>('chat_history');
+  ChatHistorySession? _currentSession;
+
+  AskAiProvider({required this.articleId, required this.article, this.sessionId}) {
+    _loadSessionOrFetchQuestions();
   }
 
   List<ChatMessage> _messages = [];
@@ -20,7 +28,18 @@ class AskAiProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isResponding => _isResponding;
 
-  // The _getToken method is no longer needed as DioClient handles it automatically.
+  void _loadSessionOrFetchQuestions() {
+    if (sessionId != null) {
+      // Load existing chat
+      _currentSession = _historyBox.values.firstWhere((s) => s.id == sessionId);
+      _messages = _currentSession!.messages;
+      _isLoading = false;
+      notifyListeners();
+    } else {
+      // Start a new chat
+      fetchInitialQuestions();
+    }
+  }
 
   Future<void> fetchInitialQuestions() async {
     _isLoading = true;
@@ -38,25 +57,48 @@ class AskAiProvider with ChangeNotifier {
   Future<void> sendMessage(String query) async {
     if (query.isEmpty || _isResponding) return;
 
-    _messages.add(ChatMessage(text: query, type: ChatMessageType.user));
+    final userMessage = ChatMessage(text: query, type: ChatMessageType.user);
+    _messages.add(userMessage);
     _isResponding = true;
     notifyListeners();
 
     try {
       final answer = await _aiService.getAiResponse(articleId, query);
-      _messages.add(ChatMessage(
+      final botMessage = ChatMessage(
         text: answer,
         type: ChatMessageType.bot,
         originalQuestion: query,
-      ));
+      );
+      _messages.add(botMessage);
+      await _saveChatToHistory(); // Save after getting a response
     } catch (e) {
-      _messages.add(ChatMessage(text: "Sorry, I couldn't get a response. Please try again.", type: ChatMessageType.error));
+      _messages.add(ChatMessage(text: "Sorry, I couldn't get a response.", type: ChatMessageType.error));
     } finally {
       _isResponding = false;
       notifyListeners();
     }
   }
 
+  Future<void> _saveChatToHistory() async {
+    if (_currentSession == null) {
+      // This is a new chat, create a session
+      _currentSession = ChatHistorySession(
+        article: article,
+        messages: _messages,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      // The session ID is generated in the constructor
+      sessionId = _currentSession!.id;
+    } else {
+      // This is an existing chat, update it
+      _currentSession!.messages = _messages;
+      _currentSession!.updatedAt = DateTime.now();
+    }
+    // Put (insert or update) the session in the Hive box
+    await _historyBox.put(_currentSession!.id, _currentSession!);
+  }
+  
   Future<void> toggleBookmark(ChatMessage message) async {
     if (message.type != ChatMessageType.bot || message.originalQuestion == null) return;
 

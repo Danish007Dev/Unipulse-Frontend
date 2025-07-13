@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../askAI/models/ai_response_bookmark.dart';
-import '../screens/ask_ai_screen.dart';
+import '../screens/ai_bookmark_detail_screen.dart'; // Import the new screen
 
 class AiBookmarkTile extends StatelessWidget {
   final AiResponseBookmark bookmark;
@@ -13,11 +13,11 @@ class AiBookmarkTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       child: InkWell(
         onTap: () {
-          // Navigate back to the chat screen for that article
+          // Navigate to the new detail screen instead of the chat screen
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => AskAiScreen(article: bookmark.originalArticle),
+              builder: (_) => AiBookmarkDetailScreen(bookmark: bookmark),
             ),
           );
         },

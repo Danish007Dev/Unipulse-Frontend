@@ -2,18 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../FeedUpApp/models/article.dart';
 import '../providers/ask_ai_provider.dart';
-import '../widgets/chat_message_tile.dart'; // Import the new widget
+import '../widgets/chat_message_tile.dart';
+import 'chat_history_screen.dart'; // Import the history screen
 
-// The StatefulWidget remains, but its state is now minimal.
 class AskAiScreen extends StatelessWidget {
   final Article article;
-  const AskAiScreen({super.key, required this.article});
+  final String? existingSessionId; // Add this optional parameter
+
+  const AskAiScreen({
+    super.key,
+    required this.article,
+    this.existingSessionId, // Add to constructor
+  });
 
   @override
   Widget build(BuildContext context) {
     // Wrap the screen with the provider
     return ChangeNotifierProvider(
-      create: (_) => AskAiProvider(articleId: int.parse(article.id)),
+      // Pass all required parameters to the provider
+      create: (_) => AskAiProvider(
+        articleId: int.parse(article.id),
+        article: article, // Pass the full article object
+        sessionId: existingSessionId, // Pass the session ID if it exists
+      ),
       child: Consumer<AskAiProvider>(
         builder: (context, provider, child) {
           return Scaffold(
@@ -22,7 +33,13 @@ class AskAiScreen extends StatelessWidget {
               leading: IconButton(
                 icon: const Icon(Icons.history),
                 tooltip: 'Chat History',
-                onPressed: () { /* TODO */ },
+                onPressed: () {
+                  // Navigate to the new history screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ChatHistoryScreen()),
+                  );
+                },
               ),
             ),
             body: Column(

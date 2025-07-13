@@ -18,6 +18,8 @@ import 'package:dio/dio.dart';
 import 'services/dio_client.dart';
 import 'askAI/models/ai_response_bookmark.dart'; 
 import 'askAI/providers/ai_bookmark_provider.dart'; 
+import 'askAI/models/chat_model.dart';
+import 'askAI/models/chat_history_session.dart';
 
 late final AuthProvider globalAuthProvider;
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -29,9 +31,13 @@ Future<void> main() async {
   // --- Initialize Hive ---
   await Hive.initFlutter();
   Hive.registerAdapter(ArticleAdapter());
+  Hive.registerAdapter(AiResponseBookmarkAdapter());
+  Hive.registerAdapter(ChatMessageTypeAdapter()); // Add this
+  Hive.registerAdapter(ChatMessageAdapter());     // Add this
+  Hive.registerAdapter(ChatHistorySessionAdapter());// Add this
   await Hive.openBox<Article>('bookmarks');
-  Hive.registerAdapter(AiResponseBookmarkAdapter()); // Register the new adapter
   await Hive.openBox<AiResponseBookmark>('ai_bookmarks'); // Open the new box
+  await Hive.openBox<ChatHistorySession>('chat_history'); // Open the new box
   // --- End Hive Initialization ---
 
   // Load environment variables

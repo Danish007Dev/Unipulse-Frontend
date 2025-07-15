@@ -20,6 +20,7 @@ import 'askAI/models/ai_response_bookmark.dart';
 import 'askAI/providers/ai_bookmark_provider.dart'; 
 import 'askAI/models/chat_model.dart';
 import 'askAI/models/chat_history_session.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 late final AuthProvider globalAuthProvider;
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -54,6 +55,11 @@ Future<void> main() async {
 
   appLogger.i('ENV BASE_URL: ${dotenv.env['API_BASE_URL']}');
 
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+  );
 
   // ✅ Create your AuthProvider ONCE
   final authProvider = AuthProvider();

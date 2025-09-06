@@ -1,4 +1,8 @@
-import 'package:dio/dio.dart';         //20/05/25
+import 'package:dio/dio.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
+import 'package:path/path.dart' as path_utils;
+import 'package:uuid/uuid.dart';
 import '/services/dio_client.dart';
 import '/utils/logger.dart';
 import 'fac_post_model.dart';
@@ -8,7 +12,10 @@ import '/services/api_config.dart';
 
 class PostService {
   static final Dio _dio = DioClient().client;
-
+  static final SupabaseClient _supabase = Supabase.instance.client;
+  static const String DOCUMENT_BUCKET = 'media-unipulse/documents';
+  static const String IMAGE_BUCKET = 'media-unipulse/images';
+  
   /// Fetches courses assigned to the logged-in faculty
   static Future<List<Course>> getCourses() async {
     try {
@@ -64,43 +71,82 @@ class PostService {
     }
   }
 
-  /// Creates a new post with optional file upload
+  /// Creates a new post with Supabase file upload
   static Future<PostCreationResult> createPost(PostCreateData data) async {
-    final formData = FormData();
-
-    formData.fields.addAll([
-      MapEntry('content', data.content),
-      MapEntry('course', data.courseId.toString()),
-      MapEntry('semester', data.semesterId.toString()),
-    ]);
-
-    if (data.document?.path != null) {
-      try {
-        final documentFile = await MultipartFile.fromFile(
-          data.document!.path!,
-          filename: data.document!.name,
-        );
-        formData.files.add(MapEntry('document_upload', documentFile));
-      } catch (e) {
-        appLogger.e('❌ Failed to prepare document', error: e);
-        return PostCreationResult(success: false, message: 'Document could not be processed.');
-      }
-    }
-
-    if (data.image?.path != null) {
-      try {
-        final imageFile = await MultipartFile.fromFile(
-          data.image!.path!,
-          filename: data.image!.name,
-        );
-        formData.files.add(MapEntry('image_upload', imageFile));
-      } catch (e) {
-        appLogger.e('❌ Failed to prepare image', error: e);
-        return PostCreationResult(success: false, message: 'Image could not be processed.');
-      }
-    }
-
+    String? documentUrl;
+    String? imageUrl;
+    
+    // Step 1: Upload files to Supabase with better error handling
     try {
+      // Handle document upload
+      if (data.document != null && data.document!.path != null) {
+        final File documentFile = File(data.document!.path!);
+        
+        if (await documentFile.exists()) {
+          final String ext = path_utils.extension(data.document!.name).toLowerCase();
+          final String uniqueFilename = '${const Uuid().v4()}$ext';
+          
+          appLogger.i('📄 Uploading document to Supabase: ${documentFile.path}');
+          
+          // Upload to Supabase
+          await _supabase
+              .storage
+              .from(DOCUMENT_BUCKET)
+              .upload(uniqueFilename, documentFile);
+              
+          // Get public URL
+          documentUrl = _supabase.storage.from(DOCUMENT_BUCKET).getPublicUrl(uniqueFilename);
+          
+          // Log the URL for debugging
+          appLogger.i('✅ Document uploaded to Supabase: $documentUrl');
+        } else {
+          appLogger.e('❌ Document file does not exist: ${data.document!.path}');
+        }
+      }
+      
+      // Handle image upload - separate from document upload
+      if (data.image != null && data.image!.path != null) {
+        final File imageFile = File(data.image!.path!);
+        
+        if (await imageFile.exists()) {
+          final String ext = path_utils.extension(data.image!.name).toLowerCase();
+          final String uniqueFilename = '${const Uuid().v4()}$ext';
+          
+          appLogger.i('🖼️ Uploading image to Supabase: ${imageFile.path}');
+          
+          // Upload to Supabase
+          await _supabase
+              .storage
+              .from(IMAGE_BUCKET)
+              .upload(uniqueFilename, imageFile);
+              
+          // Get public URL
+          imageUrl = _supabase.storage.from(IMAGE_BUCKET).getPublicUrl(uniqueFilename);
+          
+          // Log the URL for debugging
+          appLogger.i('✅ Image uploaded to Supabase: $imageUrl');
+        } else {
+          appLogger.e('❌ Image file does not exist: ${data.image!.path}');
+        }
+      }
+    } catch (e) {
+      appLogger.e('❌ Error uploading files to Supabase', error: e);
+      return PostCreationResult(success: false, message: 'File upload failed: ${e.toString()}');
+    }
+    
+    // Step 2: Create post with file URLs
+    try {
+      final formData = FormData.fromMap({
+        'content': data.content,
+        'course': data.courseId.toString(),
+        'semester': data.semesterId.toString(),
+        // Pass URLs directly to backend
+        if (documentUrl != null) 'document_url': documentUrl,
+        if (imageUrl != null) 'image_url': imageUrl,
+      });
+      
+      appLogger.i('📦 Creating post with form data: ${formData.fields}');
+      
       final response = await _dio.post(
         ApiConfig.createFacultyPost,
         data: formData,
@@ -116,8 +162,8 @@ class PostService {
           message: 'Unexpected server response: ${response.statusCode}',
         );
       }
-    } catch (e, stackTrace) {
-      appLogger.e('❌ Failed to create post', error: e, stackTrace: stackTrace);
+    } catch (e) {
+      appLogger.e('❌ Failed to create post', error: e);
 
       String message = 'Failed to create post.';
       if (e is DioException &&

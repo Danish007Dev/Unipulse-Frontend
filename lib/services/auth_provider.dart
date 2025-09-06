@@ -1,51 +1,6 @@
-
-// import 'package:flutter/material.dart';
-// import '../utils/secure_storage.dart';
-// import '../utils/token_manager.dart';
-
-// class AuthProvider extends ChangeNotifier {
-//   String? _token;
-//   String? user_type;
-//   bool _isAuthenticated = false;
-
-//   bool get isAuthenticated => _isAuthenticated;
-//   String? get role => user_type;
-
-//   AuthProvider() {
-//     _loadToken();
-//   }
-
-//   Future<void> _loadToken() async {
-//     _token = await SecureStorage.getToken();
-//     user_type = await SecureStorage.getRole();
-//     _isAuthenticated = _token != null;
-//     notifyListeners();
-//   }
-
-//   Future<void> login(String token, String role) async {
-//     _token = token;
-//     user_type = role;
-//     _isAuthenticated = true;
-//     await SecureStorage.storeToken(token);
-//     await SecureStorage.storeRole(role);
-//     notifyListeners();
-//   }
-
-//   Future<void> logout() async {
-//     _token = null;
-//     user_type = null;
-//     _isAuthenticated = false;
-//     await SecureStorage.deleteToken();
-//     await SecureStorage.deleteRole();
-//     notifyListeners();
-//   }
-
-// refactor your AuthProvider to use TokenManager instead of SecureStorage, and remove any duplication in token/role handling.
 import 'package:flutter/material.dart';
 import '../utils/token_manager.dart';
 import '../utils/logger.dart';
-
-import '../main.dart'; // Import your main.dart to access navigatorKey
 
 class AuthProvider extends ChangeNotifier {
   String? _token;
@@ -116,12 +71,26 @@ class AuthProvider extends ChangeNotifier {
     _userEmail = email;
     _isAuthenticated = true;
 
-   // await TokenManager.debugTestTokenSave(); // Debugging line to test token saving
-    await TokenManager.saveTokens(accessToken, refreshToken, userType, email);//Positional parameters → must be passed in order without naming
+    // ✅ FIX: Use named parameters to match the updated TokenManager.saveTokens method.
+    await TokenManager.saveTokens(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      userType: userType,
+      email: email,
+    );
     await TokenManager.debugPrintStoredValues(); 
     notifyListeners();
-    //appLogger.i('✅ AuthProvider login(): saved access token+saved refresh token, role, email to storage');
-    await loadStoredTokens(); // Refresh from storage for consistency
+  }
+
+  /// Silently clears the in-memory state without clearing storage.
+  /// This is used when another auth method (like FeedUp) is used, to ensure states are mutually exclusive.
+  void clearState() {
+    _token = null;
+    _userType = null;
+    _userEmail = null;
+    _isAuthenticated = false;
+    notifyListeners();
+    appLogger.i('🧹 Silently cleared AMU AuthProvider in-memory state.');
   }
 
   /// Clears all state and secure storage
@@ -133,16 +102,19 @@ class AuthProvider extends ChangeNotifier {
 
     await TokenManager.clearAllTokens();
     appLogger.i('👋 Logged out and cleared session');
-    notifyListeners();
-    // Handle navigation
-    if (navigatorKey.currentState?.mounted ?? false) {
-      navigatorKey.currentState?.pushNamedAndRemoveUntil(
-        '/role-selection',
-        (_) => false,
-      );
-    } else {
-      appLogger.w('⚠️ navigatorKey not mounted during logout');
-    }
+    
+    // ❌ REMOVE NAVIGATION LOGIC FROM THE PROVIDER
+    // The UI should react to the state change, not be forced to navigate.
+    // if (navigatorKey.currentState?.mounted ?? false) {
+    //   navigatorKey.currentState?.pushNamedAndRemoveUntil(
+    //     '/role-selection',
+    //     (_) => false,
+    //   );
+    // } else {
+    //   appLogger.w('⚠️ navigatorKey not mounted during logout');
+    // }
+
+    notifyListeners(); // The UI will rebuild automatically
   }
 
   /// Loads session if not already available in memory

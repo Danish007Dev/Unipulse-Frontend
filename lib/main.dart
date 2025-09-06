@@ -21,6 +21,7 @@ import 'askAI/providers/ai_bookmark_provider.dart';
 import 'askAI/models/chat_model.dart';
 import 'askAI/models/chat_history_session.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'FeedUpApp/providers/cs_data_provider.dart';
 
 late final AuthProvider globalAuthProvider;
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -83,6 +84,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => FacultyDashboardProvider()),
         ChangeNotifierProvider(create: (_) => FeedProvider()),
         ChangeNotifierProvider(create: (_) => AiBookmarkProvider()), 
+        ChangeNotifierProvider(create: (_) => CSDataProvider()), // Add the CS Data Provider
       ],
       // ✅ Wrap the app with our new listener
       child: AuthStateListener(child: const MyApp()),

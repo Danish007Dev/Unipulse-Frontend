@@ -11,6 +11,7 @@ import 'profile_screen.dart';
 import 'package:flutter_app/FeedUpApp/auth/feedup_auth_provider.dart';
 import '../askAI/screens/ask_ai_landing_screen.dart'; 
 import '../screens/role_selection.dart';
+import '../FeedUpApp/screens/cs_hub_screen.dart'; // Add this import
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -42,6 +43,9 @@ class _AppShellState extends State<AppShell> {
           ? const BookmarksScreen()
           : const LoginPromptWidget(message: 'Log in to view and manage your bookmarks.'),
       isAuthenticated
+          ? const CSHubScreen()
+          : const LoginPromptWidget(message: 'Log in to access CS Hub with conferences and research updates.'),
+      isAuthenticated
           ? const AskAiLandingScreen()
           : const LoginPromptWidget(message: 'Log in to use the AI Assistant.'),
     ];
@@ -50,6 +54,7 @@ class _AppShellState extends State<AppShell> {
       'FeedUp',
       if (isUniPulseUser) 'Dashboard',
       'Bookmarks',
+      'CS Hub',
       'Ask AI', 
     ];
 
@@ -115,8 +120,12 @@ class _AppShellState extends State<AppShell> {
             label: 'Bookmarks',
           ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.smart_toy_outlined), // 🔵 Update icon for AI
-            label: 'Ask AI', // 🔵 Update label for AI
+            icon: Icon(Icons.school), // Icon for CS Hub
+            label: 'CS Hub',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.smart_toy_outlined),
+            label: 'Ask AI',
           ),
         ],
       ),

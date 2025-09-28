@@ -46,12 +46,25 @@ class _CreateFacPostModalState extends State<CreateFacPostModal> {
     }
   }
 
+  // Update file type detection
+
+// Helper method to determine file type
+bool isImageFile(String? extension) {
+  if (extension == null) return false;
+  return ['jpg', 'jpeg', 'png', 'gif'].contains(extension.toLowerCase());
+}
+
+bool isDocumentFile(String? extension) {
+  if (extension == null) return false;
+  return ['pdf', 'doc', 'docx', 'txt'].contains(extension.toLowerCase());
+}
+
   void _submitPost() async {
     final content = _contentController.text.trim();
     final provider = context.read<FacultyDashboardProvider>();
 
-    if (content.isEmpty) {
-      showToast('Please enter content.');
+    if (content.isEmpty && _selectedFile == null) {
+      showToast('Please enter content or attach a file.');
       return;
     }
     if (provider.selectedCourse == null || provider.selectedSemester == null) {
@@ -60,16 +73,34 @@ class _CreateFacPostModalState extends State<CreateFacPostModal> {
     }
 
     setState(() => _isSubmitting = true);
-    String? extension = _selectedFile?.extension?.toLowerCase();
+
+    // Get file extension
+    String? extension = _selectedFile?.path != null 
+        ? _selectedFile!.path!.split('.').last
+        : null;
+    
+    // Check file type and assign to appropriate field
+    PlatformFile? documentFile;
+    PlatformFile? imageFile;
+    
+    if (_selectedFile != null) {
+      if (isDocumentFile(extension)) {
+        documentFile = _selectedFile;
+      } else if (isImageFile(extension)) {
+        imageFile = _selectedFile;
+      } else {
+        showToast('Unsupported file type. Please use images (jpg, png) or documents (pdf, doc).');
+        setState(() => _isSubmitting = false);
+        return;
+      }
+    }
+
     final post = PostCreateData(
-     
       content: content,
       courseId: provider.selectedCourse!.id,
       semesterId: provider.selectedSemester!.id,
-      // document: _selectedFile,  // needs fix
-      // image: _selectedFile,
-      document: (extension == 'pdf' || extension == 'doc' || extension == 'docx') ? _selectedFile : null,
-      image: (extension == 'jpg' || extension == 'jpeg' || extension == 'png') ? _selectedFile : null,
+      document: documentFile,
+      image: imageFile,
     );
 
     final success = await provider.createPost(post);
@@ -77,9 +108,9 @@ class _CreateFacPostModalState extends State<CreateFacPostModal> {
 
     if (success && context.mounted) {
       Navigator.pop(context);
-      showToast('Post created!');
+      showToast('Post created successfully!');
     } else {
-      showToast('Failed to create post.');
+      showToast('Failed to create post. Please try again.');
     }
   }
 
